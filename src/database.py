@@ -1,5 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, date
+from sqlalchemy import func
 
 db = SQLAlchemy()
 
@@ -19,9 +20,9 @@ class Expense(db.Model):
     id=db.Column(db.Integer, primary_key=True)
     user_id=db.Column(db.Integer, db.ForeignKey("user.id"))
     category_id=db.Column(db.Integer, db.ForeignKey("category.id"))
-    amount=db.Column(db.Integer, nullable=False)
+    amount=db.Column(db.Integer, nullable=False, default=0)
     description=db.Column(db.Text, unique=False, nullable=False)
-    date=db.Column(db.DateTime, default=datetime.now())
+    date=db.Column(db.Date, default=func.current_date())
     def __repr__(self) -> int:
         return f'Expense>>> {self.id}'
 

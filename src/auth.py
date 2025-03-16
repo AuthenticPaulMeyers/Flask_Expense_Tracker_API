@@ -2,8 +2,9 @@ from flask import Blueprint, jsonify, request
 import validators
 from werkzeug.security import generate_password_hash, check_password_hash
 from src.database import db, User
-from src.constants.http_status_codes import HTTP_409_CONFLICT, HTTP_400_BAD_REQUEST, HTTP_200_OK
+from src.constants.http_status_codes import HTTP_409_CONFLICT, HTTP_400_BAD_REQUEST, HTTP_200_OK, HTTP_201_CREATED
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token, create_refresh_token
+
 auth=Blueprint('auth', __name__, url_prefix='/api/v1.0/auth')
 
 @auth.post("/register")
@@ -47,7 +48,7 @@ def register():
             'username': username,
             'email': email
         }
-    })
+    }), HTTP_201_CREATED
 
 # user login route
 @auth.post('/login')
