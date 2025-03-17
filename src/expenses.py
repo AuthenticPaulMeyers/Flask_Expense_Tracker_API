@@ -110,3 +110,61 @@ def delete_expense(id):
         return jsonify({}), HTTP_204_NO_CONTENT
     else:
         return jsonify({"error": "no item found"}), HTTP_404_NOT_FOUND
+    
+# update route
+@expenses.put('/update/<int:id>')
+@expenses.patch('/update/<int:id>')
+@jwt_required()
+def updated_expenses(id):
+    current_user_id=get_jwt_identity()
+
+    expense_item=Expense.query.filter_by(id=id, user_id=current_user_id).first()
+    
+    if expense_item:
+
+        amount=request.json.get('amount')
+        category=request.json.get('category')
+        description=request.json.get('description')
+        category=category.capitalize()
+
+        CATEGORY=Category.query.all()
+        categories=[]
+        for item in CATEGORY:
+            categories.append(item.name)
+        
+        # validate the user input
+        if amount == " " or category == " " or description == " ":
+            return jsonify({"error": "required fields should not be empty"}), HTTP_400_BAD_REQUEST
+    
+        if not amount.isnumeric():
+            return jsonify({"error": "amount should be a number"}), HTTP_400_BAD_REQUEST
+    
+        if category not in categories:
+           return jsonify({"error": "category out of range"}), HTTP_400_BAD_REQUEST
+        
+        # get category id
+        get_category=Category.query.filter(Category.name == category).first()
+
+        if get_category:
+            category_id = get_category.id
+    
+        # add to the database
+        expense_item.amount = amount
+        expense_item.category_id = category_id
+        expense_item.description = description
+        expense_item.user_id = current_user_id
+        db.session.commit()
+
+        return jsonify({
+            "message": "transaction updated",
+            "transaction":{
+                 "amount": expense_item.amount,
+                 "category_id": expense_item.category_id,
+                 "description": expense_item.description,
+                 "id": expense_item.id
+            }
+        }), HTTP_201_CREATED
+    # returns true if the item is not found
+    return jsonify({"error": "no item found"}), HTTP_404_NOT_FOUND
+    
+

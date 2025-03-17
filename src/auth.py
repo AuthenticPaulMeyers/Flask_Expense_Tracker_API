@@ -63,20 +63,23 @@ def login():
     
     password_check=check_password_hash(user.password, password)
 
+    if password_check:
     # create jwt tokens
-    access=create_access_token(identity=str(user.id))
-    refresh=create_refresh_token(identity=str(user.id))
+        access=create_access_token(identity=str(user.id))
+        refresh=create_refresh_token(identity=str(user.id))
 
-    return jsonify({
-        'message': "login successfully",
-        'user':{
-            'email': user.email,
-            'access': access,
-            'refresh': refresh,
-            'id': user.id
+        return jsonify({
+            'message': "login successfully",
+            'user':{
+                'email': user.email,
+                'access': access,
+                'refresh': refresh,
+                'id': user.id
 
-        }
-    }), HTTP_200_OK
+            }
+        }), HTTP_200_OK
+    return jsonify({"message": "wrong password"}), HTTP_400_BAD_REQUEST
+    
 
 # get user profile
 @auth.get('/profile')
@@ -104,4 +107,52 @@ def refresh_token():
         'access': access
     }), HTTP_200_OK
 
+# update user profile
+@auth.put("/update_profile")
+@jwt_required()
+def update_profile():
+    current_user_id=get_jwt_identity()
 
+    profile=User.query.filter_by(id=current_user_id).first()
+    
+    username = request.json.get('username')
+    email = request.json.get('email')
+    password = request.json.get('password')
+
+    # input validations
+    if " " in username:
+        return jsonify({"error": "username should not contain space"})
+    if len(username) < 3:
+        return jsonify({"error": "username is too short"})
+    if not username.isalnum():
+        return jsonify({"error": "username should not contain numbers or special characters"})
+    
+    if not validators.email(email):
+        return jsonify({"error": "email is invalid"})
+    
+    if len(password) < 6:
+        return jsonify({"error:" "password is too short. Atleast 6 characters long"})
+    
+    # check if the username and email already exist
+    if User.query.filter_by(username=username).first():
+        return jsonify({"error": 'username already exist'}), HTTP_409_CONFLICT
+    
+    if User.query.filter_by(email=email).first():
+        return jsonify({"error": 'email already exist'}), HTTP_409_CONFLICT
+    
+    # generate a password hash 
+    password_hashed = generate_password_hash(password)
+
+    # save the contents in the users table in the database
+    profile.username = username
+    profile.email = email
+    profile.password = password_hashed
+    db.session.commit()
+
+    return jsonify({
+        'message': 'Profile updated successfully',
+        'user':{
+            'username': profile.username,
+            'email': profile.email
+        }
+    }), HTTP_201_CREATED
