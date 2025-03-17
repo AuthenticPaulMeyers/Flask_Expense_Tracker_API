@@ -1,9 +1,8 @@
 from flask import Blueprint, jsonify, request
 from src.database import Expense, db, Category
-from src.constants.http_status_codes import HTTP_409_CONFLICT, HTTP_400_BAD_REQUEST, HTTP_200_OK, HTTP_201_CREATED
+from src.constants.http_status_codes import HTTP_409_CONFLICT, HTTP_400_BAD_REQUEST, HTTP_200_OK, HTTP_201_CREATED, HTTP_204_NO_CONTENT, HTTP_404_NOT_FOUND
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import desc
-
 
 expenses=Blueprint('expenses', __name__, url_prefix='/api/v1.0/expenses')
 
@@ -30,7 +29,7 @@ def get_all_expnses():
             'date': expense.date,
             }
         )
-        
+
     if data == []:
         return jsonify({"message": "You do not have any transaction"}), HTTP_200_OK
     
@@ -94,3 +93,20 @@ def add_expenses():
              "category": category
         }
     }), HTTP_201_CREATED
+
+
+# delete expense route
+@expenses.delete('/delete/<int:id>')
+@jwt_required()
+def delete_expense(id):
+    current_user_id=get_jwt_identity()
+
+    item=Expense.query.filter_by(id=id, user_id=current_user_id).first()
+    
+    if item:
+        db.session.delete(item)
+        db.session.commit()
+
+        return jsonify({}), HTTP_204_NO_CONTENT
+    else:
+        return jsonify({"error": "no item found"}), HTTP_404_NOT_FOUND
